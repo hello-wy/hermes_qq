@@ -62,3 +62,4 @@ curl http://127.0.0.1:8303/health
 - 想限制可用群和用户：看 [配置参考](./config-reference.md)
 - 想走容器部署：看 [NapCat 部署](../deploy/napcat/README.md)
 - 想理解桥接行为：看 [高级说明](./advanced.md)
+- 想提问题或交流经验：看 [论坛讨论区](https://aiya.de5.net/c/hermes-qq/29)

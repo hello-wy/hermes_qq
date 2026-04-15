@@ -3,11 +3,13 @@
 <p align="center">把 Hermes Agent 接到 QQ / NapCat 的独立桥接服务，目标是先稳定跑通，再逐步补齐生产能力。</p>
 
 <p align="center">
-  [<a href="./docs/index.md">文档中心</a>] [<a href="./docs/quickstart.md">3 分钟快速开始</a>] [<a href="./docs/config-reference.md">配置参考</a>] [<a href="./deploy/napcat/README.md">NapCat 部署</a>] [<a href="./docs/advanced.md">高级说明</a>]
+  [<a href="./docs/index.md">文档中心</a>] [<a href="./docs/quickstart.md">3 分钟快速开始</a>] [<a href="./docs/config-reference.md">配置参考</a>] [<a href="./deploy/napcat/README.md">NapCat 部署</a>] [<a href="./docs/advanced.md">高级说明</a>] [<a href="https://aiya.de5.net/c/hermes-qq/29">论坛讨论区</a>]
 </p>
 
 > [!IMPORTANT]
 > 正式交流与问题反馈统一走论坛讨论区，避免 QQ 群消息淹没配置经验与排障结论。
+> 讨论区地址：<https://aiya.de5.net/c/hermes-qq/29>
+> 文档入口帖：<https://aiya.de5.net/t/topic/168>
 
 ## 项目定位
 

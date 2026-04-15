@@ -4,6 +4,8 @@
 
 ## 快速入口
 
+- [论坛讨论区](https://aiya.de5.net/c/hermes-qq/29)
+- [论坛文档入口帖](https://aiya.de5.net/t/topic/168)
 - [3 分钟快速开始](./quickstart.md)
 - [配置参考（分组版）](./config-reference.md)
 - [2026-04-15 初始版本说明](./2026-04-15-initial-release.md)
