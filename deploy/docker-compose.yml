@@ -1,0 +1,12 @@
+services:
+  hermes-qq:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: hermes-qq
+    network_mode: host
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    volumes:
+      - ../data:/app/data

@@ -1,0 +1,14 @@
+{
+  "name": "hermes_qq",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OneBot v11 bridge for Hermes Agent",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
