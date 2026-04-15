@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   cleanOutboundText,
   containsKeyword,
+  decideGroupTrigger,
   extractPlainText,
   splitMessage,
 } from "../src/message-utils.js";
@@ -22,6 +23,24 @@ test("extractPlainText strips self mention when requested", () => {
 
 test("containsKeyword matches lowercase keywords", () => {
   assert.equal(containsKeyword("请让 Hermes 帮忙", ["hermes", "小h"]), "hermes");
+});
+
+test("group command requires mention when bare group commands are disabled", () => {
+  const blocked = decideGroupTrigger({
+    keywordOnlyTrigger: true,
+    allowBareGroupCommands: false,
+    commandMessage: true,
+  });
+  assert.equal(blocked.triggered, false);
+
+  const allowed = decideGroupTrigger({
+    keywordOnlyTrigger: true,
+    allowBareGroupCommands: false,
+    commandMessage: true,
+    mentioned: true,
+  });
+  assert.equal(allowed.triggered, true);
+  assert.equal(allowed.triggerReason, "mention-command");
 });
 
 test("cleanOutboundText removes think blocks and markdown fences", () => {

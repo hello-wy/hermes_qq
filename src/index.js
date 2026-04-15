@@ -4,6 +4,7 @@ import { HermesClient } from "./hermes-client.js";
 import {
   cleanOutboundText,
   containsKeyword,
+  decideGroupTrigger,
   extractPlainText,
   getReplyMessageId,
   hasAtSelf,
@@ -306,31 +307,15 @@ async function handleInboundMessage(event) {
   }
 
   if (route.type === "group") {
-    let triggered = false;
-    let triggerReason = "";
-
-    if (config.keywordOnlyTrigger) {
-      triggered = Boolean(keywordHit) || (config.allowBareGroupCommands && commandMessage);
-      if (keywordHit) {
-        triggerReason = `keyword:${keywordHit}`;
-      } else if (config.allowBareGroupCommands && commandMessage) {
-        triggerReason = "command";
-      }
-    } else if (config.requireMention) {
-      triggered = mentioned || repliedToBot || Boolean(keywordHit) || (config.allowBareGroupCommands && commandMessage);
-      if (keywordHit) {
-        triggerReason = `keyword:${keywordHit}`;
-      } else if (config.allowBareGroupCommands && commandMessage) {
-        triggerReason = "command";
-      } else if (mentioned) {
-        triggerReason = "mention";
-      } else if (repliedToBot) {
-        triggerReason = "reply";
-      }
-    } else {
-      triggered = true;
-      triggerReason = keywordHit ? `keyword:${keywordHit}` : "open";
-    }
+    const { triggered, triggerReason } = decideGroupTrigger({
+      keywordOnlyTrigger: config.keywordOnlyTrigger,
+      requireMention: config.requireMention,
+      allowBareGroupCommands: config.allowBareGroupCommands,
+      mentioned,
+      repliedToBot,
+      keywordHit,
+      commandMessage,
+    });
 
     if (!triggered) {
       return;

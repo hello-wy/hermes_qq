@@ -107,6 +107,61 @@ export function containsKeyword(text, keywords) {
   return "";
 }
 
+export function decideGroupTrigger({
+  keywordOnlyTrigger = false,
+  requireMention = true,
+  allowBareGroupCommands = false,
+  mentioned = false,
+  repliedToBot = false,
+  keywordHit = "",
+  commandMessage = false,
+} = {}) {
+  const canRunCommand = Boolean(commandMessage) && (Boolean(mentioned) || Boolean(repliedToBot) || allowBareGroupCommands);
+
+  if (keywordOnlyTrigger) {
+    if (keywordHit) {
+      return { triggered: true, triggerReason: `keyword:${keywordHit}` };
+    }
+    if (canRunCommand) {
+      return {
+        triggered: true,
+        triggerReason: allowBareGroupCommands && !mentioned && !repliedToBot ? "command" : mentioned ? "mention-command" : "reply-command",
+      };
+    }
+    return { triggered: false, triggerReason: "" };
+  }
+
+  if (requireMention) {
+    if (keywordHit) {
+      return { triggered: true, triggerReason: `keyword:${keywordHit}` };
+    }
+    if (canRunCommand) {
+      return {
+        triggered: true,
+        triggerReason: allowBareGroupCommands && !mentioned && !repliedToBot ? "command" : mentioned ? "mention-command" : "reply-command",
+      };
+    }
+    if (mentioned) {
+      return { triggered: true, triggerReason: "mention" };
+    }
+    if (repliedToBot) {
+      return { triggered: true, triggerReason: "reply" };
+    }
+    return { triggered: false, triggerReason: "" };
+  }
+
+  if (keywordHit) {
+    return { triggered: true, triggerReason: `keyword:${keywordHit}` };
+  }
+  if (canRunCommand) {
+    return {
+      triggered: true,
+      triggerReason: allowBareGroupCommands && !mentioned && !repliedToBot ? "command" : mentioned ? "mention-command" : "reply-command",
+    };
+  }
+  return { triggered: true, triggerReason: "open" };
+}
+
 export function cleanOutboundText(text, formatMarkdown = true) {
   let cleaned = String(text || "");
 

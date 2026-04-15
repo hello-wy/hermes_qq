@@ -50,7 +50,7 @@
 - `KEYWORD_TRIGGERS`
   - 唤醒词列表
 - `ALLOW_BARE_GROUP_COMMANDS`
-  - 群里是否允许直接发 `/model` 这类指令
+  - 群里是否允许直接发 `/model` 这类指令；关闭后必须 `@机器人 /model` 或回复机器人再发命令
 
 ## E. 输出行为
 
@@ -113,7 +113,7 @@ NOTIFY_NON_ADMIN_BLOCKED=true
 REQUIRE_MENTION=true
 KEYWORD_ONLY_TRIGGER=true
 KEYWORD_TRIGGERS=hermes,赫尔墨斯,小缘,缘神,缘子,阿缘
-ALLOW_BARE_GROUP_COMMANDS=true
+ALLOW_BARE_GROUP_COMMANDS=false
 ```
 
 如果你想“只认关键词，`@` 也不触发”，推荐：
