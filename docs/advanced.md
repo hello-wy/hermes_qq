@@ -3,7 +3,7 @@
 ## 整体架构
 
 ```text
-QQ -> NapCat -> OneBot WS -> hermes_qq -> Hermes /v1/chat/completions
+QQ -> NapCat -> OneBot WS -> hermes_qq -> Hermes /v1/responses
 ```
 
 `hermes_qq` 不直接嵌进 Hermes，也不复用 OpenClaw 插件运行时。它是一个独立 Node 服务，目标是把 QQ 渠道适配层和 Hermes Agent 本身解耦。

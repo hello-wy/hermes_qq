@@ -27,7 +27,7 @@ Hermes 本身没有 OneBot / NapCat 适配层，`hermes_qq` 的职责是：
 
 - OneBot v11 WebSocket 接入
 - NapCat 兼容
-- Hermes / OpenAI-compatible `/v1/chat/completions` 调用
+- Hermes / OpenAI-compatible `/v1/responses` 调用
 - `/v1/models` 拉取与 `/model` 动态切换
 - `X-Hermes-Session-Id` 会话连续性
 - 直连 OpenAI-compatible 上游时的本地多轮上下文

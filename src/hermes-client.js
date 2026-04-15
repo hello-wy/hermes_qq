@@ -1,25 +1,57 @@
 import { sleep } from "./message-utils.js";
 
+export function extractResponseText(payload) {
+  const direct = String(payload?.output_text || "").trim();
+  if (direct) {
+    return direct;
+  }
+
+  const output = Array.isArray(payload?.output) ? payload.output : [];
+  const chunks = [];
+
+  for (const item of output) {
+    if (String(item?.type || "") !== "message") {
+      continue;
+    }
+
+    const contentItems = Array.isArray(item?.content) ? item.content : [];
+    for (const contentItem of contentItems) {
+      const text = String(contentItem?.text || "").trim();
+      if (!text) {
+        continue;
+      }
+      if (String(contentItem?.type || "") === "output_text") {
+        chunks.push(text);
+        continue;
+      }
+      chunks.push(text);
+    }
+  }
+
+  return chunks.join("\n").trim();
+}
+
 export class HermesClient {
   constructor(config) {
     this.config = config;
   }
 
   async complete({ sessionId, userMessage, model, history = [] }) {
+    const input = [
+      ...history.map((item) => ({
+        role: String(item?.role || "").trim() || "user",
+        content: String(item?.content || ""),
+      })),
+      {
+        role: "user",
+        content: userMessage,
+      },
+    ];
+
     const body = {
       model: model || this.config.hermesModel,
-      stream: false,
-      messages: [
-        {
-          role: "system",
-          content: this.config.systemPrompt,
-        },
-        ...history,
-        {
-          role: "user",
-          content: userMessage,
-        },
-      ],
+      instructions: this.config.systemPrompt,
+      input,
     };
 
     let lastError = null;
@@ -33,7 +65,7 @@ export class HermesClient {
           headers["X-Hermes-Session-Id"] = sessionId;
         }
 
-        const response = await fetch(`${this.config.hermesBaseUrl}/chat/completions`, {
+        const response = await fetch(`${this.config.hermesBaseUrl}/responses`, {
           method: "POST",
           headers,
           body: JSON.stringify(body),
@@ -49,7 +81,7 @@ export class HermesClient {
           throw new Error(messageText);
         }
 
-        const content = payload?.choices?.[0]?.message?.content;
+        const content = extractResponseText(payload);
         if (!content || !String(content).trim()) {
           throw new Error("model API returned empty content");
         }
