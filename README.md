@@ -16,7 +16,7 @@
 Hermes 本身没有 OneBot / NapCat 适配层，`hermes_qq` 的职责是：
 
 - 接 OneBot v11 WebSocket。
-- 把 QQ 消息转成 Hermes OpenAI 兼容 API 请求。
+- 把 QQ 消息转成 Hermes / OpenAI 兼容 API 请求。
 - 管理 QQ 会话与 Hermes session continuity。
 - 对输出做 QQ 友好的纯文本清洗，减少 Markdown 痕迹。
 - 提供基础的白名单、触发条件和权限控制。
@@ -27,8 +27,10 @@ Hermes 本身没有 OneBot / NapCat 适配层，`hermes_qq` 的职责是：
 
 - OneBot v11 WebSocket 接入
 - NapCat 兼容
-- Hermes `/v1/chat/completions` 调用
+- Hermes / OpenAI-compatible `/v1/chat/completions` 调用
+- `/v1/models` 拉取与 `/model` 动态切换
 - `X-Hermes-Session-Id` 会话连续性
+- 直连 OpenAI-compatible 上游时的本地多轮上下文
 - 群聊 `@` / 回复 / 关键词触发
 - 群白名单、用户白名单、管理员限制、用户黑名单
 - Markdown 清洗与长消息分段
@@ -81,7 +83,7 @@ curl http://127.0.0.1:8303/health
 ## 典型部署链路
 
 ```text
-QQ -> NapCat -> OneBot WebSocket -> hermes_qq -> Hermes API Server -> LLM / tools
+QQ -> NapCat -> OneBot WebSocket -> hermes_qq -> Hermes / OpenAI-compatible API -> LLM / tools
 ```
 
 ## 适合什么场景

@@ -106,6 +106,31 @@ function buildContextLabel(route) {
   return `当前来自 QQ 私聊用户 ${route.senderName || route.userId} (${route.userId})。请按 QQ 聊天风格回复。`;
 }
 
+function getActiveModel() {
+  return stateStore.getSelectedModel() || config.hermesModel;
+}
+
+function formatModelList(models) {
+  const activeModel = getActiveModel();
+  const lines = [
+    `当前模型: ${activeModel}`,
+    `默认模型: ${config.hermesModel}`,
+    "",
+    "可用模型:",
+  ];
+
+  if (!models.length) {
+    lines.push("- 当前 key 没有返回可用模型");
+    return lines.join("\n");
+  }
+
+  for (const model of models) {
+    const prefix = model === activeModel ? "* " : "- ";
+    lines.push(`${prefix}${model}`);
+  }
+  return lines.join("\n");
+}
+
 function shouldNotifyBlocked(userId) {
   const now = Date.now();
   const key = String(userId);
@@ -164,7 +189,10 @@ async function handleCommand(route, text) {
       [
         "可用命令:",
         "/ping - 连通性检查",
-        "/model - 查看当前 Hermes 模型",
+        "/model - 查看当前模型与默认模型",
+        "/model list - 查看当前 key 可用模型",
+        "/model <模型名> - 切换模型",
+        "/model reset - 恢复默认模型",
         "/new - 新建会话",
         "/reset - 新建会话",
       ].join("\n"),
@@ -172,7 +200,51 @@ async function handleCommand(route, text) {
     return true;
   }
   if (command.name === "model") {
-    await sendCommandReply(route, `当前模型: ${config.hermesModel}`);
+    if (command.args.length === 0) {
+      await sendCommandReply(
+        route,
+        [
+          `当前模型: ${getActiveModel()}`,
+          `默认模型: ${config.hermesModel}`,
+          "用法: /model list | /model <模型名> | /model reset",
+        ].join("\n"),
+      );
+      return true;
+    }
+
+    const subcommand = String(command.args[0] || "").trim().toLowerCase();
+    if (["list", "ls", "all"].includes(subcommand)) {
+      const models = await hermesClient.listModels();
+      await sendCommandReply(route, formatModelList(models));
+      return true;
+    }
+
+    if (["reset", "default"].includes(subcommand)) {
+      await stateStore.clearSelectedModel();
+      await sendCommandReply(route, `已恢复默认模型: ${config.hermesModel}`);
+      return true;
+    }
+
+    const requestedModel = command.args.join(" ").trim();
+    if (!requestedModel) {
+      await sendCommandReply(route, "请提供模型名，例如: /model gpt-5.4-xhigh-fast-jailbreak");
+      return true;
+    }
+
+    const models = await hermesClient.listModels();
+    if (models.length > 0 && !models.includes(requestedModel)) {
+      await sendCommandReply(
+        route,
+        [
+          `当前 key 不支持模型: ${requestedModel}`,
+          "先执行 /model list 查看可用模型。",
+        ].join("\n"),
+      );
+      return true;
+    }
+
+    await stateStore.setSelectedModel(requestedModel);
+    await sendCommandReply(route, `已切换模型: ${requestedModel}`);
     return true;
   }
   if (command.name === "new" || command.name === "reset") {
@@ -205,17 +277,6 @@ async function handleInboundMessage(event) {
     senderName: String(event?.sender?.card || event?.sender?.nickname || userId),
   };
 
-  if (!canUserChat(route)) {
-    return;
-  }
-
-  if (config.adminOnlyChat && !isAdmin(userId)) {
-    if (config.notifyNonAdminBlocked && shouldNotifyBlocked(userId)) {
-      await sendText(route, config.nonAdminBlockedMessage);
-    }
-    return;
-  }
-
   const incomingText = extractPlainText(event.message, {
     selfId,
     stripSelfMentions: true,
@@ -227,32 +288,72 @@ async function handleInboundMessage(event) {
 
   const keywordHit = containsKeyword(normalizedText, config.keywordTriggers);
   const commandMessage = isCommand(normalizedText);
+  const mentioned = route.type === "group" ? hasAtSelf(event.message, selfId || config.botQq) : false;
+  const repliedToBot = route.type === "group" ? await isReplyToBot(event) : false;
+
+  if (!canUserChat(route)) {
+    if (route.type === "group" && (mentioned || repliedToBot || keywordHit || commandMessage)) {
+      log(`blocked group trigger from user ${userId} in group ${groupId}`);
+    }
+    return;
+  }
+
+  if (config.adminOnlyChat && !isAdmin(userId)) {
+    if (config.notifyNonAdminBlocked && shouldNotifyBlocked(userId)) {
+      await sendText(route, config.nonAdminBlockedMessage);
+    }
+    return;
+  }
 
   if (route.type === "group") {
-    const mentioned = hasAtSelf(event.message, selfId || config.botQq);
-    const repliedToBot = await isReplyToBot(event);
     let triggered = false;
+    let triggerReason = "";
 
     if (config.keywordOnlyTrigger) {
       triggered = Boolean(keywordHit) || (config.allowBareGroupCommands && commandMessage);
+      if (keywordHit) {
+        triggerReason = `keyword:${keywordHit}`;
+      } else if (config.allowBareGroupCommands && commandMessage) {
+        triggerReason = "command";
+      }
     } else if (config.requireMention) {
       triggered = mentioned || repliedToBot || Boolean(keywordHit) || (config.allowBareGroupCommands && commandMessage);
+      if (keywordHit) {
+        triggerReason = `keyword:${keywordHit}`;
+      } else if (config.allowBareGroupCommands && commandMessage) {
+        triggerReason = "command";
+      } else if (mentioned) {
+        triggerReason = "mention";
+      } else if (repliedToBot) {
+        triggerReason = "reply";
+      }
     } else {
       triggered = true;
+      triggerReason = keywordHit ? `keyword:${keywordHit}` : "open";
     }
 
     if (!triggered) {
       return;
     }
+
+    log(`accepted group trigger from user ${userId} in group ${groupId} via ${triggerReason || "unknown"}`);
   }
 
-  if (await handleCommand(route, normalizedText)) {
+  try {
+    if (await handleCommand(route, normalizedText)) {
+      return;
+    }
+  } catch (error) {
+    log(`command handling failed for user ${userId}: ${String(error)}`);
+    await sendText(route, `命令执行失败: ${String(error.message || error)}`);
     return;
   }
 
   const baseKey = buildBaseSessionKey(route);
   const sessionId = stateStore.getSessionId(baseKey);
   const contextLabel = buildContextLabel(route);
+  const userPrompt = hermesClient.buildUserPrompt(normalizedText, contextLabel);
+  const history = config.localHistoryEnabled ? stateStore.getConversation(sessionId) : [];
 
   await enqueueSession(
     baseKey,
@@ -260,9 +361,21 @@ async function handleInboundMessage(event) {
       try {
         const reply = await hermesClient.complete({
           sessionId,
-          message: normalizedText,
-          contextLabel,
+          userMessage: userPrompt,
+          history,
+          model: getActiveModel(),
         });
+
+        if (config.localHistoryEnabled) {
+          await stateStore.appendConversation(
+            sessionId,
+            [
+              { role: "user", content: userPrompt },
+              { role: "assistant", content: reply },
+            ],
+            config.localHistoryMaxMessages,
+          );
+        }
 
         const cleaned = cleanOutboundText(reply, config.formatMarkdown);
         const outbound = cleaned || "这轮 Hermes 没有返回可发送的文本。";

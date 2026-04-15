@@ -7,14 +7,14 @@
 - `ONEBOT_WS_URL`
   - NapCat 正向 WebSocket 地址
 - `HERMES_BASE_URL`
-  - Hermes API 地址，必须带 `/v1`
+  - Hermes 或任意 OpenAI 兼容 API 地址，必须带 `/v1`
 - `HERMES_API_KEY`
-  - Hermes API Bearer Token
+  - 上游 API Bearer Token
 
 ## B. Hermes 侧
 
 - `HERMES_MODEL`
-  - 对外调用的模型名，默认 `hermes-agent`
+  - 默认模型名；运行中也可以通过 `/model` 切换
 - `SYSTEM_PROMPT`
   - 追加系统提示词
 - `REQUEST_TIMEOUT_MS`
@@ -67,6 +67,10 @@
 
 - `GROUP_SESSIONS_PER_USER`
   - 群里是共享会话还是按用户拆会话
+- `LOCAL_HISTORY_ENABLED`
+  - 当上游只是普通 OpenAI 兼容接口、不会识别 `X-Hermes-Session-Id` 时，是否由 `hermes_qq` 本地维护多轮上下文
+- `LOCAL_HISTORY_MAX_MESSAGES`
+  - 本地保留的历史消息条数上限
 - `QUEUE_DEBOUNCE_MS`
   - 同一会话的防抖窗口
 - `DATA_DIR`
@@ -77,11 +81,14 @@
 ```dotenv
 ONEBOT_WS_URL=ws://127.0.0.1:3001
 ONEBOT_ACCESS_TOKEN=your-onebot-token
-HERMES_BASE_URL=http://127.0.0.1:8642/v1
-HERMES_API_KEY=your-hermes-key
-HERMES_MODEL=hermes-agent
+HERMES_BASE_URL=https://api.example.com/v1
+HERMES_API_KEY=sk-your-upstream-key
+HERMES_MODEL=gpt-5.4-xhigh-fast-jailbreak
+BOT_NAME=小缘
 REQUIRE_MENTION=true
-KEYWORD_TRIGGERS=hermes,小h
+KEYWORD_ONLY_TRIGGER=true
+KEYWORD_TRIGGERS=hermes,赫尔墨斯,小缘,缘神,缘子,阿缘
+ALLOW_BARE_GROUP_COMMANDS=true
 FORMAT_MARKDOWN=true
 MAX_MESSAGE_LENGTH=1200
 RATE_LIMIT_MS=800
@@ -104,13 +111,14 @@ NOTIFY_NON_ADMIN_BLOCKED=true
 
 ```dotenv
 REQUIRE_MENTION=true
-KEYWORD_TRIGGERS=hermes,小h
-ALLOW_BARE_GROUP_COMMANDS=false
+KEYWORD_ONLY_TRIGGER=true
+KEYWORD_TRIGGERS=hermes,赫尔墨斯,小缘,缘神,缘子,阿缘
+ALLOW_BARE_GROUP_COMMANDS=true
 ```
 
 如果你想“只认关键词，`@` 也不触发”，推荐：
 
 ```dotenv
 KEYWORD_ONLY_TRIGGER=true
-KEYWORD_TRIGGERS=hermes
+KEYWORD_TRIGGERS=hermes,赫尔墨斯,小缘,缘神,缘子,阿缘
 ```

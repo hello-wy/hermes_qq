@@ -90,8 +90,9 @@ export function loadConfig() {
   const dataDir = path.resolve(getString("DATA_DIR", "./data"));
   const botQq = getString("BOT_QQ", "");
   const botName = getString("BOT_NAME", "Hermes");
+  const botIdentity = botName || "Hermes";
   const baseSystemPrompt = [
-    "You are Hermes speaking inside QQ via OneBot.",
+    `You are ${botIdentity} speaking inside QQ via OneBot.`,
     "Keep replies concise, useful, and plain-text by default.",
     "Avoid Markdown headings, tables, and fenced code blocks unless the user explicitly asks for them.",
     "When the user asks for code, you may send code, but prefer short snippets and explanations that render well in QQ.",
@@ -130,6 +131,8 @@ export function loadConfig() {
     maxRetries: Math.max(0, getInteger("MAX_RETRIES", 1)),
     retryDelayMs: Math.max(0, getInteger("RETRY_DELAY_MS", 2000)),
     groupSessionsPerUser: getBoolean("GROUP_SESSIONS_PER_USER", false),
+    localHistoryEnabled: getBoolean("LOCAL_HISTORY_ENABLED", false),
+    localHistoryMaxMessages: Math.max(2, getInteger("LOCAL_HISTORY_MAX_MESSAGES", 24)),
     queueDebounceMs: Math.max(0, getInteger("QUEUE_DEBOUNCE_MS", 0)),
   };
 }

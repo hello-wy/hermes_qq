@@ -91,9 +91,16 @@ export function extractPlainText(message, options = {}) {
 }
 
 export function containsKeyword(text, keywords) {
-  const normalized = String(text || "").toLowerCase();
+  const normalized = String(text || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .trim();
   for (const keyword of keywords || []) {
-    if (keyword && normalized.includes(keyword)) {
+    const normalizedKeyword = String(keyword || "")
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .trim();
+    if (normalizedKeyword && normalized.includes(normalizedKeyword)) {
       return keyword;
     }
   }
