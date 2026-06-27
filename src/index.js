@@ -1,6 +1,9 @@
 import http from "node:http";
+import { getCommand } from "./commands.js";
+import { registerCommands } from "./register-commands.js";
 import { loadConfig } from "./config.js";
 import { HermesClient } from "./hermes-client.js";
+import { SolidClient } from "./solid-client.js";
 import {
   cleanOutboundText,
   containsKeyword,
@@ -21,6 +24,8 @@ const stateStore = new StateStore(config.dataDir);
 await stateStore.init();
 
 const hermesClient = new HermesClient(config);
+const solidClient = new SolidClient(config);
+registerCommands();
 const onebot = new OneBotClient({
   wsUrl: config.onebotWsUrl,
   accessToken: config.onebotAccessToken,
@@ -111,27 +116,6 @@ function getActiveModel() {
   return stateStore.getSelectedModel() || config.hermesModel;
 }
 
-function formatModelList(models) {
-  const activeModel = getActiveModel();
-  const lines = [
-    `当前模型: ${activeModel}`,
-    `默认模型: ${config.hermesModel}`,
-    "",
-    "可用模型:",
-  ];
-
-  if (!models.length) {
-    lines.push("- 当前 key 没有返回可用模型");
-    return lines.join("\n");
-  }
-
-  for (const model of models) {
-    const prefix = model === activeModel ? "* " : "- ";
-    lines.push(`${prefix}${model}`);
-  }
-  return lines.join("\n");
-}
-
 function shouldNotifyBlocked(userId) {
   const now = Date.now();
   const key = String(userId);
@@ -179,81 +163,26 @@ async function handleCommand(route, text) {
     return false;
   }
 
-  const baseKey = buildBaseSessionKey(route);
-  if (command.name === "ping") {
-    await sendCommandReply(route, "pong");
-    return true;
+  const entry = getCommand(command.name);
+  if (!entry) {
+    return false;
   }
-  if (command.name === "help") {
-    await sendCommandReply(
-      route,
-      [
-        "可用命令:",
-        "/ping - 连通性检查",
-        "/model - 查看当前模型与默认模型",
-        "/model list - 查看当前 key 可用模型",
-        "/model <模型名> - 切换模型",
-        "/model reset - 恢复默认模型",
-        "/new - 新建会话",
-        "/reset - 新建会话",
-      ].join("\n"),
-    );
-    return true;
-  }
-  if (command.name === "model") {
-    if (command.args.length === 0) {
-      await sendCommandReply(
-        route,
-        [
-          `当前模型: ${getActiveModel()}`,
-          `默认模型: ${config.hermesModel}`,
-          "用法: /model list | /model <模型名> | /model reset",
-        ].join("\n"),
-      );
-      return true;
-    }
 
-    const subcommand = String(command.args[0] || "").trim().toLowerCase();
-    if (["list", "ls", "all"].includes(subcommand)) {
-      const models = await hermesClient.listModels();
-      await sendCommandReply(route, formatModelList(models));
-      return true;
-    }
+  const ctx = {
+    route,
+    command,
+    baseKey: buildBaseSessionKey(route),
+    reply: (message) => sendCommandReply(route, message),
+    stateStore,
+    hermesClient,
+    solidClient,
+    config,
+    getActiveModel,
+    isAdmin,
+  };
 
-    if (["reset", "default"].includes(subcommand)) {
-      await stateStore.clearSelectedModel();
-      await sendCommandReply(route, `已恢复默认模型: ${config.hermesModel}`);
-      return true;
-    }
-
-    const requestedModel = command.args.join(" ").trim();
-    if (!requestedModel) {
-      await sendCommandReply(route, "请提供模型名，例如: /model gpt-5.4-xhigh-fast-jailbreak");
-      return true;
-    }
-
-    const models = await hermesClient.listModels();
-    if (models.length > 0 && !models.includes(requestedModel)) {
-      await sendCommandReply(
-        route,
-        [
-          `当前 key 不支持模型: ${requestedModel}`,
-          "先执行 /model list 查看可用模型。",
-        ].join("\n"),
-      );
-      return true;
-    }
-
-    await stateStore.setSelectedModel(requestedModel);
-    await sendCommandReply(route, `已切换模型: ${requestedModel}`);
-    return true;
-  }
-  if (command.name === "new" || command.name === "reset") {
-    await stateStore.bumpSession(baseKey);
-    await sendCommandReply(route, "已创建新会话。");
-    return true;
-  }
-  return false;
+  await entry.handler(ctx);
+  return true;
 }
 
 async function handleInboundMessage(event) {
